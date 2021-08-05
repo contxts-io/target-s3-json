@@ -14,7 +14,7 @@ from datetime import datetime
 import singer
 from jsonschema import Draft7Validator, FormatChecker
 
-from target_s3_csv import s3
+from target_s3_json import s3
 import utils
 
 logger = singer.get_logger('target_s3_json')
