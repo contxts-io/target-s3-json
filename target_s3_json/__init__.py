@@ -15,7 +15,7 @@ import singer
 from jsonschema import Draft7Validator, FormatChecker
 
 from target_s3_json import s3
-import utils
+from target_s3_json import utils
 
 logger = singer.get_logger('target_s3_json')
 
