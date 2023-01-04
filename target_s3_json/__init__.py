@@ -55,7 +55,20 @@ def persist_messages(messages, config, s3_client):
             raise
         message_type = o['type']
         if message_type == 'RECORD':
-            streamname = o['stream']
+            if "__meta__" in o['stream']:
+                streamname = o['stream'][8:]
+                target_key = utils.get_target_key(o,
+                                  prefix=config.get('s3_key_prefix', ''),
+                                  timestamp=timestamp,
+                                  file_identifier=str(file_nr),
+                                  naming_convention=config.get('naming_convention_meta'))
+            else:
+                streamname = o['stream']
+                target_key = utils.get_target_key(o,
+                                  prefix=config.get('s3_key_prefix', ''),
+                                  timestamp=timestamp,
+                                  file_identifier=str(file_nr),
+                                  naming_convention=config.get('naming_convention'))
 
             if streamname not in schemas:
                 raise Exception("A record for stream {}"
@@ -78,8 +91,6 @@ def persist_messages(messages, config, s3_client):
             else:
                 record_to_load = utils.remove_metadata_values_from_record(o)
 
-            logger.info(f"record_to_load \n {record_to_load}")
-
             filename = o['stream'] + '-' + timestamp + "_" + str(file_nr) + '.json'
             filename = os.path.expanduser(os.path.join(temp_dir, filename))
 
@@ -87,11 +98,11 @@ def persist_messages(messages, config, s3_client):
                 filenames.append((filename, target_key))
 
             file_is_empty = (not os.path.isfile(filename)) or os.stat(filename).st_size == 0
-            flattened_record = utils.flatten_record(record_to_load)
+            logger.info(f"record_to_load \n {record_to_load}")
 
             if file_is_empty:
                 with open(filename, "w") as f:
-                    f.write(json.dumps(record_to_load))
+                    f.write(json.dumps(record_to_load) + config.get('delimiter', ''))
 
             state = None
         elif message_type == 'STATE':
