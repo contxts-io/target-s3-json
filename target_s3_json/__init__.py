@@ -98,11 +98,13 @@ def persist_messages(messages, config, s3_client):
                 filenames.append((filename, target_key))
 
             file_is_empty = (not os.path.isfile(filename)) or os.stat(filename).st_size == 0
-            logger.info(f"record_to_load \n {record_to_load}")
+            flattened_record = utils.flatten_record(record_to_load)
 
             if file_is_empty:
                 with open(filename, "w") as f:
-                    f.write(json.dumps(record_to_load) + config.get('delimiter', ''))
+                    f.writelines("[")
+            with open(filename, "w") as f:
+                f.write(json.dumps(record_to_load) + config.get('delimiter', ','))
 
             state = None
         elif message_type == 'STATE':
@@ -136,7 +138,7 @@ def persist_messages(messages, config, s3_client):
     #print(filenames)
     for filename, target_key in filenames:
         with open(filename, "r") as f:
-            text = json.loads(f.read())
+            text = json.loads(f.read() + "]")
 
         with open(filename, 'w') as f:
             f.write(json.dumps(text, indent=4))
