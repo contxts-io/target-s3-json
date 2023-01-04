@@ -49,7 +49,7 @@ def persist_messages(messages, config, s3_client):
     file_nr = 0
     stream = None
     timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
-    logger.debug(messages)
+    logger.info(messages)
     
     for row_count, message in enumerate(messages):
         try:
