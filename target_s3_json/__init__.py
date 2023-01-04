@@ -43,6 +43,7 @@ def persist_messages(messages, config, s3_client):
         os.makedirs(temp_dir, exist_ok=True)
 
     records = []
+    stream = None
     now = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
     logger.info(messages)
 
