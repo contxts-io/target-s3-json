@@ -11,7 +11,7 @@ import inflection
 from decimal import Decimal
 from datetime import datetime
 
-logger = singer.get_logger('target_s3_json')
+logger = singer.get_logger()
 
 
 def validate_config(config):
@@ -123,7 +123,7 @@ def get_target_key(message, prefix=None, timestamp=None, file_identifier=None, n
     """Creates and returns an S3 key for the message"""
 
     key = naming_convention
-    
+
     # replace simple tokens
     for k, v in {
         '{stream}': message['stream'],

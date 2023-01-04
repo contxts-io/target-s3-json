@@ -17,7 +17,7 @@ from jsonschema import Draft7Validator, FormatChecker
 from target_s3_json import s3
 from target_s3_json import utils
 
-logger = singer.get_logger('target_s3_json')
+logger = singer.get_logger()
 
 def emit_state(state):
     if state is not None:
@@ -32,11 +32,7 @@ def persist_messages(messages, config, s3_client):
     state = None
     schemas = {}
     key_properties = {}
-    headers = {}
     validators = {}
-
-    delimiter = config.get('delimiter', ',')
-    quotechar = config.get('quotechar', '"')
 
     # Use the system specific temp directory if no custom temp_dir provided
     temp_dir = os.path.expanduser(config.get('temp_dir', tempfile.gettempdir()))
@@ -59,20 +55,7 @@ def persist_messages(messages, config, s3_client):
             raise
         message_type = o['type']
         if message_type == 'RECORD':
-            if "__meta__" in o['stream']:
-                streamname = o['stream'][8:]
-                target_key = utils.get_target_key(o,
-                                  prefix=config.get('s3_key_prefix', ''),
-                                  timestamp=timestamp,
-                                  file_identifier=str(file_nr),
-                                  naming_convention=config.get('naming_convention_meta'))
-            else:
-                streamname = o['stream']
-                target_key = utils.get_target_key(o,
-                                  prefix=config.get('s3_key_prefix', ''),
-                                  timestamp=timestamp,
-                                  file_identifier=str(file_nr),
-                                  naming_convention=config.get('naming_convention'))
+            streamname = o['stream']
 
             if streamname not in schemas:
                 raise Exception("A record for stream {}"
@@ -95,6 +78,8 @@ def persist_messages(messages, config, s3_client):
             else:
                 record_to_load = utils.remove_metadata_values_from_record(o)
 
+            logger.info(f"record_to_load \n {record_to_load}")
+
             filename = o['stream'] + '-' + timestamp + "_" + str(file_nr) + '.json'
             filename = os.path.expanduser(os.path.join(temp_dir, filename))
 
@@ -106,7 +91,7 @@ def persist_messages(messages, config, s3_client):
 
             if file_is_empty:
                 with open(filename, "w") as f:
-                    f.write(json.dumps(record_to_load) + config.get('delimiter', ''))
+                    f.write(json.dumps(record_to_load))
 
             state = None
         elif message_type == 'STATE':
