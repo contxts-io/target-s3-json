@@ -50,7 +50,7 @@ def persist_messages(messages, config, s3_client):
     stream = None
     timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
     logger.info(messages)
-    
+
     for row_count, message in enumerate(messages):
         try:
             o = singer.parse_message(message).asdict()
@@ -73,7 +73,7 @@ def persist_messages(messages, config, s3_client):
                                   timestamp=timestamp,
                                   file_identifier=str(file_nr),
                                   naming_convention=config.get('naming_convention'))
-                                  
+
             if streamname not in schemas:
                 raise Exception("A record for stream {}"
                                 "was encountered before a corresponding schema".format(streamname))
@@ -103,16 +103,10 @@ def persist_messages(messages, config, s3_client):
 
             file_is_empty = (not os.path.isfile(filename)) or os.stat(filename).st_size == 0
             flattened_record = utils.flatten_record(record_to_load)
-            
-            SOF = '{{"edwRecordSource":"{}","data":['.format(config.get('edwRecordSource'))
+
             if file_is_empty:
-                with open(filename, "w") as f: 
-                    f.writelines(SOF) 
-            
-            with open(filename, 'a') as json_file:
-                #json_file.write(json.dumps(record_to_load) + config.get('delimiter', ''))
-                json_file.write(message + config.get('delimiter', ''))
-            #print("Filename: ",filename)
+                with open(filename, "w") as f:
+                    f.write(json.dumps(record_to_load) + config.get('delimiter', ''))
 
             state = None
         elif message_type == 'STATE':
@@ -125,7 +119,7 @@ def persist_messages(messages, config, s3_client):
             schemas[stream] = o['schema']
             if config.get('add_metadata_columns'):
                 schemas[stream] = utils.add_metadata_columns_to_schema(o)
-            
+
             stream_logname = "streams_{}_{}.log".format(config.get('edwRecordSource'), timestamp)
             with open(stream_logname, 'a') as streams_file:
                 streams_file.write(stream + '\n')
@@ -138,22 +132,19 @@ def persist_messages(messages, config, s3_client):
         else:
             logger.warning("Unknown message type {} in message {}"
                             .format(o['type'], o))
-        
+
         if row_count % 4000 == 0:
             file_nr += 1
-            
+
     # Upload to S3
     #print(filenames)
     for filename, target_key in filenames:
         with open(filename, "r") as f:
-            text = f.read()
-            text = text[:-1]
-            text += "]}"
-            text = json.loads(text)
-            
+            text = json.loads(f.read())
+
         with open(filename, 'w') as f:
             f.write(json.dumps(text, indent=4))
-            
+
         compressed_file = None
         if config.get("compression") is None or config["compression"].lower() == "none":
             pass  # no compression
